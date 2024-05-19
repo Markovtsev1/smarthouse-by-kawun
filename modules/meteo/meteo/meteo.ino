@@ -7,13 +7,13 @@
 #include <WiFiManager.h>                // Библиотека для удобного подключения к WiFi
 #include <ESP8266HTTPClient.h>          // HTTP клиент
 #include <ArduinoJson.h>                // Библиотека для работы с JSON
-#include <ESP8266Firebase.h>            // Библиотека для работы с Firebase
 #include "config.h"
+#include <Firebase_ESP_Client.h>
+
 
 // Параметры сети WiFi
 WiFiClientSecure secured_client;
 
-Firebase firebase(DB_URL);
 unsigned long sendDataPrevMillis = 0;
 int count = 0;
 bool signupOK = false;
@@ -67,6 +67,13 @@ float wind;                             //Ветер в м/с
 long timeOffset;                        //Оффсет времени
 byte httpErrCount = 0;                  //Счетчик ошибок получения погоды 
 
+FirebaseData fbdo;
+
+FirebaseAuth auth;
+FirebaseConfig config;
+
+
+
 
 void setup() {
   Serial.begin(9600);
@@ -85,6 +92,33 @@ void setup() {
   }
   timeClient.begin();                              //Инициализация NTP клиента
   timeClient.setTimeOffset(timeOffset);            //Установка оффсета времени
+  
+  config.api_key = API_KEY;
+
+  /* Assign the user sign in credentials */
+  auth.user.email = USER_EMAIL;
+  auth.user.password = USER_PASSWORD;
+
+  /* Assign the RTDB URL (required) */
+  config.database_url = DATABASE_URL;
+
+  // Comment or pass false value when WiFi reconnection will control by your code or third party library e.g. WiFiManager
+  Firebase.reconnectNetwork(true);
+
+  // Since v4.4.x, BearSSL engine was used, the SSL buffer need to be set.
+  // Large data transmission may require larger RX buffer, otherwise connection issue or data read time out can be occurred.
+  fbdo.setBSSLBufferSize(4096 /* Rx buffer size in bytes from 512 - 16384 */, 1024 /* Tx buffer size in bytes from 512 - 16384 */);
+
+  // Limit the size of response payload to be collected in FirebaseData
+  fbdo.setResponseSize(2048);
+
+  Firebase.begin(&config, &auth);
+
+  Firebase.setDoubleDigits(5);
+
+  config.timeout.serverResponse = 10 * 1000;
+
+  getParams();
 }
 
 void loop() {
@@ -224,9 +258,34 @@ void sendChangeName(String text)
 {
   if (text.length()>12)
   {
-    String roomName = text.substring(12);
+    roomName = text.substring(12);
     String str = "Имя комнаты изменено на " + roomName;
-    bot.sendMessage(CHAT_ID, str, "");
+    // Устанавливаем новое название комнаты в базу данных Firebase
+    String path = ROOM_PARAMS_PATH;
+    if (Firebase.RTDB.setString(&fbdo, path.c_str(), roomName.c_str())) {
+    // Отправляем сообщение в Telegram о успешном изменении названия комнаты
+    String message = "Название комнаты успешно изменено на " + roomName;
+    bot.sendMessage(CHAT_ID, message, "");
+  } else {
+    // Отправляем сообщение в Telegram о неудачной попытке изменения названия комнаты
+            bot.sendMessage(CHAT_ID, "Не удалось изменить название комнаты в базе данных", "");
+  }
   }
   else bot.sendMessage(CHAT_ID, "Имя комнаты не может быть пустым!", "");
 }
+
+void getParams() {
+  // Создание пути к параметру "name" в вашей базе данных Firebase
+  String roomPath = ROOM_PARAMS_PATH;
+
+  // Получение названия комнаты из базы данных Firebase
+  if (Firebase.RTDB.getString(&fbdo, roomPath.c_str())) {
+    // Если получение успешно, сохраняем название комнаты в переменную roomName
+    roomName = fbdo.stringData();
+    bot.sendMessage(CHAT_ID, "Название комнаты успешно получено", "");
+  } else {
+    bot.sendMessage(CHAT_ID, "Не удалось получить название комнаты", "");
+    roomName = ""; // Если не удалось получить название комнаты, возвращаем пустую строку
+  }
+}
+
