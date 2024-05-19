@@ -260,7 +260,6 @@ void sendChangeName(String text)
   {
     roomName = text.substring(12);
     String str = "Имя комнаты изменено на " + roomName;
-    // Устанавливаем новое название комнаты в базу данных Firebase
     String path = ROOM_PARAMS_PATH;
     if (Firebase.RTDB.setString(&fbdo, path.c_str(), roomName.c_str())) {
     // Отправляем сообщение в Telegram о успешном изменении названия комнаты
@@ -275,7 +274,7 @@ void sendChangeName(String text)
 }
 
 void getParams() {
-  // Создание пути к параметру "name" в вашей базе данных Firebase
+  // Получение пути к имени комнаты
   String roomPath = ROOM_PARAMS_PATH;
 
   // Получение названия комнаты из базы данных Firebase
