@@ -118,7 +118,8 @@ void setup() {
 
   config.timeout.serverResponse = 10 * 1000;
 
-  getParams();
+  getParamsFromDB();
+  sendReport();
 }
 
 void loop() {
@@ -132,6 +133,7 @@ void loop() {
   if (millis() - lastUpdWeather > 120000){         //Обновление погоды раз в 2 минуты
       weatherUpdate();
       lastUpdWeather = millis();
+      sendReport();
   }
 
   int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
@@ -162,6 +164,11 @@ void handleNewMessages(int numNewMessages)
       if (text.startsWith("/changename "))
       {
         sendChangeName(text);
+      }
+
+      if (text == "/sendreport")
+      {
+        sendReport();
       }
     }
   }
@@ -273,7 +280,7 @@ void sendChangeName(String text)
   else bot.sendMessage(CHAT_ID, "Имя комнаты не может быть пустым!", "");
 }
 
-void getParams() {
+void getParamsFromDB() {
   // Получение пути к имени комнаты
   String roomPath = ROOM_PARAMS_PATH;
 
@@ -288,3 +295,37 @@ void getParams() {
   }
 }
 
+String currentDataForJSON() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    return "09-02-2006";
+  }
+  char buffer[11];  // Для формата DD-MM-YYYY
+  strftime(buffer, sizeof(buffer), "%d-%m-%Y", &timeinfo);
+  return String(buffer);
+}
+
+String currentTimeForJSON() {
+  return (hh < 10 ? "0" + String(hh) : String(hh)) + 
+         (mm < 10 ? "0" + String(mm) : String(mm))  + 
+         (ss < 10 ? "0" + String(ss) : String(ss));
+}
+void sendReport()
+{
+  // Считывание данных с датчика
+  float humidity = dht.readHumidity();
+  float temp = dht.readTemperature();
+
+  // Создание JSON файла
+  String jsonData = "{\"temperature\":\"" + String(temp) + "\", \"humidity\":\"" + String(humidity) + "\"}";
+  FirebaseJson json;
+  json.setJsonData(jsonData);
+
+  String path = REPORTS_PATH;                             
+  path += "/"   +currentTimeForJSON() + "-" + currentDataForJSON();            
+
+  if (!Firebase.RTDB.setJSON(&fbdo, path.c_str(), &json))  // Передаем указатель на json
+  {
+     bot.sendMessage(CHAT_ID, fbdo.errorReason().c_str(), "");
+  }
+}

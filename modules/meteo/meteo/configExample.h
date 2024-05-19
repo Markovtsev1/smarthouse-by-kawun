@@ -16,3 +16,4 @@
 #define USER_PASSWORD "ваш пароль"
 
 #define ROOM_PARAMS_PATH "meteo/params"
+#define REPORTS_PATH "meteo/reports/room1"
