@@ -9,7 +9,7 @@
 #include "config.h"
 #include <Firebase_ESP_Client.h>
 #include "databaseFunctions.h"
-
+#include "weatherClient.h" 
 // Параметры сети WiFi
 WiFiClientSecure secured_client;
 
@@ -32,11 +32,6 @@ unsigned long bot_lasttime;
 DHT dht(DHTPIN, DHT11);
 
 
-const String lat = "53.90";             // Географические координаты
-const String lon = "27.567";            // Минск
-
-
-
 //////////////////NTPClient///////////////
 
 WiFiUDP ntpUDP;
@@ -46,8 +41,7 @@ NTPClient timeClient(ntpUDP, "pool.ntp.org");
 ///////////////Переменные/////////////////
 
 WiFiManager wifiManager;
-HTTPClient http;
-DynamicJsonDocument doc(1500);
+
 
 byte hh, mm, ss;                        // Часы минуты секунды
 String roomName = "Комната 1";
@@ -55,12 +49,6 @@ String roomName = "Комната 1";
 unsigned long timing, rndTiming, lastUpdWeather, lastUpdData;
 
 
-int internetTemp, internetMinTemp, internetMaxTemp, weatherID;
-byte humidity, clouds;                  //Влажность и облака в процентах
-String location, weather, description;  //Местоположение, погода, подробное описание погоды 
-float wind;                             //Ветер в м/с
-long timeOffset;                        //Оффсет времени
-byte httpErrCount = 0;                  //Счетчик ошибок получения погоды 
 
 FirebaseData fbdo;
 
@@ -80,6 +68,7 @@ void setup() {
 
     while (WiFi.status() != WL_CONNECTED)            // Пока соеденение не установлено, выполняем задержку
         delay(300);
+    if (devMode)
     bot.sendMessage(CHAT_ID, "Подключено успешно!", "");
     int code = weatherUpdate();                      //Обновление погоды
     if (code != 200) {
@@ -166,50 +155,6 @@ void handleNewMessages(int numNewMessages) {
     }
 }
 
-
-int weatherUpdate() {
-    if (WiFi.status() == WL_CONNECTED) {
-        String httpStr = String("http://api.openweathermap.org/data/2.5/weather") + String("?lat=") + String(lat) +
-                         String("&lon=") + String(lon) + String("&appid=") + String(appid) +
-                         String("&units=metric&lang=en");
-        WiFiClient client;           // Создание WiFi клиента
-        HTTPClient http;
-        http.begin(client, httpStr); // Использование WiFi клиента
-
-        int httpCode = http.GET();
-        String json = http.getString();
-        http.end();
-
-        if (httpCode != 200) {
-            httpErrCount++;
-            return httpCode;
-        }
-
-        DeserializationError error = deserializeJson(doc, json);
-
-        if (error) {
-            return httpCode;
-        }
-
-        internetTemp = doc["main"]["temp"];
-        internetMinTemp = doc["main"]["temp_min"];
-        internetMaxTemp = doc["main"]["temp_max"];
-        wind = doc["wind"]["speed"];
-        description = doc["weather"][0]["description"].as<String>();
-        weather = doc["weather"][0]["main"].as<String>();
-        humidity = doc["main"]["humidity"];
-        clouds = doc["clouds"]["all"];
-        location = doc["name"].as<String>();
-        timeOffset = doc["timezone"];
-        weatherID = doc["weather"][0]["id"];
-
-        httpErrCount = 0;
-
-        return httpCode;
-    } else         // Возвращаем какое-то значение, если WiFi не подключен
-        return -1; // Например, -1 для обозначения отсутствия подключения
-
-}
 
 String currentTime() {
     return (hh < 10 ? "0" + String(hh) : String(hh)) + ":" +

@@ -29,9 +29,10 @@ void getParamsFromDB() {
     roomName = ""; // Если не удалось получить название комнаты, возвращаем пустую строку
   }
 
-  if (Firebase.RTDB.getString(&fbdo, modePath.c_str())) {
+  if (Firebase.RTDB.getBool(&fbdo, modePath.c_str())) {
     // Если получение успешно, сохраняем название комнаты в переменную roomName
-    devMode = bool(fbdo.stringData());
+    devMode = bool(fbdo.boolData());
+    if (devMode)
     bot.sendMessage(CHAT_ID, "Режим отладки установлен", "");
   } else {
     bot.sendMessage(CHAT_ID, "Не удалось получить режим отладки", "");
@@ -52,10 +53,11 @@ void sendReport(float humidity,float temp) {
 
   if (!Firebase.RTDB.setJSON(&fbdo, path.c_str(), &json) && devMode) {
     bot.sendMessage(CHAT_ID, fbdo.errorReason().c_str(), "");
-  } else if (devMode)
+  } else {
+    if (devMode)
   {
     bot.sendMessage(CHAT_ID, "Отчет успешно отправлен!", "");
-  }
+  }}
 }
 
 // Функция для изменения имени комнаты
