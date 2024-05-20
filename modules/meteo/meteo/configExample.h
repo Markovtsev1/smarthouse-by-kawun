@@ -1,4 +1,4 @@
- Параметры сети WiFi
+// Параметры сети WiFi
 #define WIFI_SSID "ваш SSID"
 #define WIFI_PASSWORD "ваш пароль сети"
 
@@ -15,5 +15,6 @@
 #define USER_EMAIL "ваш логин"
 #define USER_PASSWORD "ваш пароль"
 
-#define ROOM_PARAMS_PATH "meteo/params"
+#define NAME_PATH "meteo/params/name"
+#define MODE_PATH "meteo/params/devMode"
 #define REPORTS_PATH "meteo/reports/room1"
