@@ -46,7 +46,7 @@ WiFiManager wifiManager;
 byte hh, mm, ss;                        // Часы минуты секунды
 String roomName = "Комната 1";
 // Переменные для хранения точек отсчета
-unsigned long timing, rndTiming, lastUpdWeather, lastUpdData;
+unsigned long timing, rndTiming, lastUpdWeather, lastUpdData, lastSendReport;
 
 
 
@@ -112,14 +112,20 @@ void loop() {
     timeClient.update();
     hh = timeClient.getHours();
     mm = timeClient.getMinutes();
-    ss = timeClient.getSeconds();             //Обновление времени
+    ss = timeClient.getSeconds();              // Обновление времени
 
 
-    if (millis() - lastUpdWeather > 120000) {         //Обновление погоды раз в 2 минуты
+    if (millis() - lastUpdWeather > 300000) {  // Обновление погоды раз в 5 минут
         weatherUpdate();
         lastUpdWeather = millis();
+    }
+
+    if (millis() - lastSendReport > 3600000) { // Отправление отчета раз в 1 час
+        lastSendReport = millis();
         sendReport(dht.readHumidity(), dht.readTemperature());
     }
+
+
 
     int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
     while (numNewMessages) {
