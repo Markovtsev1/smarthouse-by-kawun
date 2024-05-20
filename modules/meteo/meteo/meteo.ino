@@ -301,13 +301,13 @@ String currentDataForJSON() {
     return "09-02-2006";
   }
   char buffer[11];  // Для формата DD-MM-YYYY
-  strftime(buffer, sizeof(buffer), "%d-%m-%Y", &timeinfo);
+  strftime(buffer, sizeof(buffer), "%Y-%m-%d", &timeinfo);
   return String(buffer);
 }
 
 String currentTimeForJSON() {
-  return (hh < 10 ? "0" + String(hh) : String(hh)) + 
-         (mm < 10 ? "0" + String(mm) : String(mm))  + 
+  return (hh < 10 ? "0" + String(hh) : String(hh)) + ":" +
+         (mm < 10 ? "0" + String(mm) : String(mm))  + ":" +
          (ss < 10 ? "0" + String(ss) : String(ss));
 }
 void sendReport()
@@ -317,12 +317,12 @@ void sendReport()
   float temp = dht.readTemperature();
 
   // Создание JSON файла
-  String jsonData = "{\"temperature\":\"" + String(temp) + "\", \"humidity\":\"" + String(humidity) + "\"}";
+  String jsonData = "{\"temperature\":\"" + String(temp) + "°C\", \"humidity\":\"" + String(humidity) + "%\"}";
   FirebaseJson json;
   json.setJsonData(jsonData);
 
   String path = REPORTS_PATH;                             
-  path += "/"   +currentTimeForJSON() + "-" + currentDataForJSON();            
+  path += "/"   + currentDataForJSON() + " " + currentTimeForJSON();            
 
   if (!Firebase.RTDB.setJSON(&fbdo, path.c_str(), &json))  // Передаем указатель на json
   {
