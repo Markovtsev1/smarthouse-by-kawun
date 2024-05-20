@@ -119,7 +119,7 @@ void setup() {
   config.timeout.serverResponse = 10 * 1000;
 
   getParamsFromDB();
-  sendReport();
+  sendReport(true);
 }
 
 void loop() {
@@ -133,7 +133,7 @@ void loop() {
   if (millis() - lastUpdWeather > 120000){         //Обновление погоды раз в 2 минуты
       weatherUpdate();
       lastUpdWeather = millis();
-      sendReport();
+      sendReport(false);
   }
 
   int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
@@ -166,9 +166,9 @@ void handleNewMessages(int numNewMessages)
         sendChangeName(text);
       }
 
-      if (text == "/sendreport")
+      if (text == "/send_report")
       {
-        sendReport();
+        sendReport(true);
       }
     }
   }
@@ -310,7 +310,7 @@ String currentTimeForJSON() {
          (mm < 10 ? "0" + String(mm) : String(mm))  + ":" +
          (ss < 10 ? "0" + String(ss) : String(ss));
 }
-void sendReport()
+void sendReport(bool isLoggingEnabled)
 {
   // Считывание данных с датчика
   float humidity = dht.readHumidity();
@@ -328,4 +328,6 @@ void sendReport()
   {
      bot.sendMessage(CHAT_ID, fbdo.errorReason().c_str(), "");
   }
+    else if (isLoggingEnabled){
+    bot.sendMessage(CHAT_ID, "Отчет успешно отправлен!", "");}
 }
